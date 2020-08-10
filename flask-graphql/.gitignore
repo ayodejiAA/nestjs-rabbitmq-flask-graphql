@@ -1,0 +1,10 @@
+.vscode
+env
+venv
+.env
+migrations/
+*.pyo
+*.pyc
+__pycache__
+.DS_STORE
+.DS_Store
