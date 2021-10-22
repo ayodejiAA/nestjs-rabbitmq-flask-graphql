@@ -1,0 +1,66 @@
+version: "3.7"
+
+services:
+  graphql-gateway:
+    container_name: gateway
+    command: flask run -h 0.0.0.0 -p 5000
+    build:
+      context: ./flask-graphql
+    restart: always
+    environment:
+      - FLASK_ENV=development
+      - SERVICE_QUEUE_NAME=product
+      - RMQ_URL=amqp://myuser:mypassword@rabbitmq3:5672
+    ports:
+      - "8000:5000"
+    networks:
+      - webnet
+    depends_on:
+      - product-microservice
+      - rabbitmq3
+
+  product-microservice:
+    container_name: product
+    build:
+      context: ./nest-service
+    command: npm run start:prod
+    environment:
+      - MONGO_DB_URL=mongodb://db:27017/test
+      - RMQ_URL=amqp://myuser:mypassword@rabbitmq3:5672
+      - SERVICE_QUEUE_NAME=product
+    networks:
+      - webnet
+      - dbnet
+    restart: always
+    depends_on:
+      - db
+      - rabbitmq3
+
+  db:
+    container_name: mongodb
+    image: mongo:latest
+    restart: always
+    volumes:
+      - mongodbdata:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - dbnet
+
+  rabbitmq3:
+    container_name: "rabbitmq"
+    image: rabbitmq:3.8-management-alpine
+    environment:
+      - RABBITMQ_DEFAULT_USER=myuser
+      - RABBITMQ_DEFAULT_PASS=mypassword
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # HTTP management UI
+    networks:
+      - webnet
+
+networks:
+  webnet:
+  dbnet:
+volumes:
+  mongodbdata:
